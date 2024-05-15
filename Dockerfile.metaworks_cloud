@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+FROM {{{ imagebuilder:parentImage }}}
+{{{ imagebuilder:environments }}}
+{{{ imagebuilder:components }}}
+
+WORKDIR /root/Snakemake
+
+SHELL ["/bin/bash", "--login", "-c"]
+RUN apt update && apt install -y awscli libuv1 libdw1 unzip && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://github.com/terrimporter/MetaWorks/releases/download/v1.12.0/MetaWorks1.12.0.zip
+RUN unzip MetaWorks1.12.0.zip && mv MetaWorks1.12.0/* . && rm -rf MetaWorks1.12.0
+
+RUN conda env create -f ./environment.yml && conda clean -afy && conda init bash && printf "conda activate MetaWorks_v1.12.0" >> ~/.bashrc
+
+# Download CO1 training set
+RUN wget https://github.com/terrimporter/CO1Classifier/releases/download/RDP-COI-v5.0.0/RDP_COIv5.0.0.zip
+
+# decompress it
+RUN unzip RDP_COIv5.0.0.zip
+
+# Configure snakemake to point to classifier location
+RUN sed -i "s/\/path\/to/\/root\/Snakemake\/mydata/" config_testing_COI_data.yaml 
+
+# supplement conda env with ORFfinder (and libuv and libdw)
+RUN wget ftp://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/ORFfinder/linux-i64/ORFfinder.gz 
+RUN gunzip ORFfinder.gz
+RUN mkdir ~/bin
+RUN chmod a+x ./ORFfinder
+RUN mv ORFfinder ~/bin
+
+
+ENV PATH="${PATH}:/root/bin"
+
+CMD /bin/sh
+

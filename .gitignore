@@ -1,0 +1,21 @@
+# user project configs
+amzn.yaml
+AWS-Batch_Snakemake-Profile/cookiecutter.json
+
+# project build artifacts
+pipelines/src
+pipeline_build
+aws-batch
+AWS-Batch_Snakemake-Profile/cookiecutter.json
+Snakemake.tar.gz
+local_pipelines
+
+# generated Docker config folders
+.aws
+.config
+
+#compiled python
+*.pyc
+
+#cache
+maloja.cache

@@ -1,0 +1,21 @@
+infrastructure:
+  region: <designated-aws-region>
+  publicKey: /home/<user>/.ssh/id_rsa.pub
+pipeline:
+  jobDefinition: <name-of-job-definition>
+  pipeline_url: <url-to-pipeline-source-code>
+  pipeline_path: <pipieline-conda-pathname>
+  name: <name-of-pipeline>
+  dockerFile: <local-path-to-dockerfile>
+  landingZoneSize: <size-of-ec2-instance>
+  local_build: <folder-to-be-deployed-to-batch-compute>
+user:
+  name: <your-name>
+  account: <your-aws-account-number>
+  whitelistIp: <your-public-ip>
+roles: #These are filled out by following the install instructions
+  batchInstanceProfile: 
+  batchServiceRole: 
+  ecsInstanceRole: 
+  ecsExecutionRole: 
+  imageBuilderInstanceProfileName: 

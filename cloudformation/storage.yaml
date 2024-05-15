@@ -1,0 +1,23 @@
+Resources:
+  PipelineInputs:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: PipelineIdentifier
+          Value: !Ref PipelineIdentifier
+      BucketName: !Join ['-', [!Sub "${Project}-snakemake-provision", !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+
+Parameters:
+  Project:
+    Description: Name of the project being deployed
+    Type: String
+  PipelineIdentifier:
+    Description: uniquely identifies the project resources
+    Type: String
+
+Outputs:
+  Bucket:
+    Description: The bucket being used for this pipeline's storage
+    Value: !Ref PipelineInputs
+    Export:
+      Name: !Sub "${AWS::StackName}-Bucket"

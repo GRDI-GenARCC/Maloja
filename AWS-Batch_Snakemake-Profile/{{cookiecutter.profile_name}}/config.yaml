@@ -1,0 +1,8 @@
+jobscript: batch-jobscript.sh
+cluster: "batch-submit.py"
+cluster-status: "batch-status.py"
+max-jobs-per-second: 1
+max-status-checks-per-second: 1
+latency-wait: 60
+local-cores: 1
+restart-times: 3

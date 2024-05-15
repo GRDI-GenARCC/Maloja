@@ -1,0 +1,461 @@
+Resources:
+  LandingZone:
+    Type: "AWS::EC2::Instance"
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          config:
+            - config
+        config:
+          groups:
+            docker: {}
+          users:
+            hodgsonw:
+              groups:
+                - "docker"
+            ec2-user:
+              groups:
+              - "docker"
+          commands:
+            initiate_docker:
+              command: "service docker start"
+    Properties: 
+      Tags:
+        - Key: PipelineIdentifier
+          Value: !Ref PipelineIdentifier
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              yum update -y
+            - |
+              yum install -y aws-cfn-bootstrap docker
+            - |
+              sed -i 's/#Port\ 22/Port\ 443/' /etc/ssh/sshd_config
+            - |
+              service sshd restart
+            - |
+              mkdir /home/ec2-user/mountpoint
+            - 'mount -t nfs -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport '
+            - Fn::ImportValue:
+                Fn::Sub: '${BatchStack}-PipelineFilesystem'
+            - |
+              .efs.ca-central-1.amazonaws.com:/ /home/ec2-user/mountpoint
+            - '/opt/aws/bin/cfn-init -v '
+            - ' --stack='
+            - !Ref 'AWS::StackName'
+            - ' --resource=LandingZone '
+            - ' --configsets config '
+            - ' --region='
+            - !Ref 'AWS::Region'
+            - |+
+
+      ImageId: !FindInMap [AWSRegionArch2AMI, "ca-central-1", !FindInMap [AWSInstanceType2Arch, !Ref InstanceType, Arch]]
+      InstanceType:
+        Ref: InstanceType
+      KeyName: !Ref PublicKey #THIS SHOULD STILL BE CONFIGURED FOR ANY KEYPAIR
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: '100'
+            DeleteOnTermination: 'true'
+            Encrypted: 'true'
+      NetworkInterfaces:
+        - GroupSet:
+          - Fn::ImportValue:
+              Fn::Sub: '${BatchStack}-LzSecurityGroup'
+          AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          SubnetId: 
+            Fn::ImportValue:
+              Fn::Sub: '${VpcStack}-PublicSubnet'
+
+  PublicKey:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Join ['-', ['SnakemakeKey', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      KeyType: rsa
+      PublicKeyMaterial: !Ref PublicKeyContent
+      Tags:
+        - Key: PipelineIdentifier
+          Value: !Ref PipelineIdentifier
+
+  LzSshAccess:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      CidrIp: !Sub '${WhitelistIP}' #Ingress from your network to access the EC2 landingZone
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      GroupId:
+        Fn::ImportValue:
+          Fn::Sub: '${BatchStack}-LzSecurityGroup'
+      Tags:
+        - Key: PipelineIdentifier
+          Value: !Ref PipelineIdentifier
+
+#Outputs:
+#  PublicIP: #Get LandingZone's public IP for connecting
+#    Description: EC2 public IP
+#    Value: !GetAtt LandingZone.PublicIp
+
+Mappings:
+  AWSInstanceType2Arch:
+    c1.medium:
+      Arch: PV64
+    c1.xlarge:
+      Arch: PV64
+    c3.2xlarge:
+      Arch: HVM64
+    c3.4xlarge:
+      Arch: HVM64
+    c3.8xlarge:
+      Arch: HVM64
+    c3.large:
+      Arch: HVM64
+    c3.xlarge:
+      Arch: HVM64
+    c4.2xlarge:
+      Arch: HVM64
+    c4.4xlarge:
+      Arch: HVM64
+    c4.8xlarge:
+      Arch: HVM64
+    c4.large:
+      Arch: HVM64
+    c4.xlarge:
+      Arch: HVM64
+    cc2.8xlarge:
+      Arch: HVM64
+    cr1.8xlarge:
+      Arch: HVM64
+    d2.2xlarge:
+      Arch: HVM64
+    d2.4xlarge:
+      Arch: HVM64
+    d2.8xlarge:
+      Arch: HVM64
+    d2.xlarge:
+      Arch: HVM64
+    g2.2xlarge:
+      Arch: HVMG2
+    g2.8xlarge:
+      Arch: HVMG2
+    hi1.4xlarge:
+      Arch: HVM64
+    hs1.8xlarge:
+      Arch: HVM64
+    i2.2xlarge:
+      Arch: HVM64
+    i2.4xlarge:
+      Arch: HVM64
+    i2.8xlarge:
+      Arch: HVM64
+    i2.xlarge:
+      Arch: HVM64
+    m1.large:
+      Arch: PV64
+    m1.medium:
+      Arch: PV64
+    m1.small:
+      Arch: PV64
+    m1.xlarge:
+      Arch: PV64
+    m2.2xlarge:
+      Arch: PV64
+    m2.4xlarge:
+      Arch: PV64
+    m2.xlarge:
+      Arch: PV64
+    m3.2xlarge:
+      Arch: HVM64
+    m3.large:
+      Arch: HVM64
+    m3.medium:
+      Arch: HVM64
+    m3.xlarge:
+      Arch: HVM64
+    m4.10xlarge:
+      Arch: HVM64
+    m4.2xlarge:
+      Arch: HVM64
+    m4.4xlarge:
+      Arch: HVM64
+    m4.large:
+      Arch: HVM64
+    m4.xlarge:
+      Arch: HVM64
+    r3.2xlarge:
+      Arch: HVM64
+    r3.4xlarge:
+      Arch: HVM64
+    r3.8xlarge:
+      Arch: HVM64
+    r3.large:
+      Arch: HVM64
+    r3.xlarge:
+      Arch: HVM64
+    t1.micro:
+      Arch: PV64
+    t2.large:
+      Arch: HVM64
+    t2.medium:
+      Arch: HVM64
+    t2.micro:
+      Arch: HVM64
+    t2.nano:
+      Arch: HVM64
+    t2.small:
+      Arch: HVM64
+  AWSInstanceType2NATArch:
+    c1.medium:
+      Arch: NATPV64
+    c1.xlarge:
+      Arch: NATPV64
+    c3.2xlarge:
+      Arch: NATHVM64
+    c3.4xlarge:
+      Arch: NATHVM64
+    c3.8xlarge:
+      Arch: NATHVM64
+    c3.large:
+      Arch: NATHVM64
+    c3.xlarge:
+      Arch: NATHVM64
+    c4.2xlarge:
+      Arch: NATHVM64
+    c4.4xlarge:
+      Arch: NATHVM64
+    c4.8xlarge:
+      Arch: NATHVM64
+    c4.large:
+      Arch: NATHVM64
+    c4.xlarge:
+      Arch: NATHVM64
+    cc2.8xlarge:
+      Arch: NATHVM64
+    cr1.8xlarge:
+      Arch: NATHVM64
+    d2.2xlarge:
+      Arch: NATHVM64
+    d2.4xlarge:
+      Arch: NATHVM64
+    d2.8xlarge:
+      Arch: NATHVM64
+    d2.xlarge:
+      Arch: NATHVM64
+    g2.2xlarge:
+      Arch: NATHVMG2
+    g2.8xlarge:
+      Arch: NATHVMG2
+    hi1.4xlarge:
+      Arch: NATHVM64
+    hs1.8xlarge:
+      Arch: NATHVM64
+    i2.2xlarge:
+      Arch: NATHVM64
+    i2.4xlarge:
+      Arch: NATHVM64
+    i2.8xlarge:
+      Arch: NATHVM64
+    i2.xlarge:
+      Arch: NATHVM64
+    m1.large:
+      Arch: NATPV64
+    m1.medium:
+      Arch: NATPV64
+    m1.small:
+      Arch: NATPV64
+    m1.xlarge:
+      Arch: NATPV64
+    m2.2xlarge:
+      Arch: NATPV64
+    m2.4xlarge:
+      Arch: NATPV64
+    m2.xlarge:
+      Arch: NATPV64
+    m3.2xlarge:
+      Arch: NATHVM64
+    m3.large:
+      Arch: NATHVM64
+    m3.medium:
+      Arch: NATHVM64
+    m3.xlarge:
+      Arch: NATHVM64
+    m4.10xlarge:
+      Arch: NATHVM64
+    m4.2xlarge:
+      Arch: NATHVM64
+    m4.4xlarge:
+      Arch: NATHVM64
+    m4.large:
+      Arch: NATHVM64
+    m4.xlarge:
+      Arch: NATHVM64
+    r3.2xlarge:
+      Arch: NATHVM64
+    r3.4xlarge:
+      Arch: NATHVM64
+    r3.8xlarge:
+      Arch: NATHVM64
+    r3.large:
+      Arch: NATHVM64
+    r3.xlarge:
+      Arch: NATHVM64
+    t1.micro:
+      Arch: NATPV64
+    t2.large:
+      Arch: NATHVM64
+    t2.medium:
+      Arch: NATHVM64
+    t2.micro:
+      Arch: NATHVM64
+    t2.nano:
+      Arch: NATHVM64
+    t2.small:
+      Arch: NATHVM64
+  AWSRegionArch2AMI:
+    ap-northeast-1:
+      HVM64: ami-383c1956
+      HVMG2: ami-08e5c166
+      PV64: ami-393c1957
+    ap-northeast-2:
+      HVM64: ami-249b554a
+      HVMG2: NOT_SUPPORTED
+      PV64: NOT_SUPPORTED
+    ap-southeast-1:
+      HVM64: ami-c9b572aa
+      HVMG2: ami-5a15d239
+      PV64: ami-34bd7a57
+    ap-southeast-2:
+      HVM64: ami-48d38c2b
+      HVMG2: ami-0c1a446f
+      PV64: ami-ced887ad
+    ca-central-1:
+      HVM64: ami-0b18956f
+      HVMG2: NOT_SUPPORTED
+      PV64: NOT_SUPPORTED
+    cn-north-1:
+      HVM64: ami-43a36a2e
+      HVMG2: NOT_SUPPORTED
+      PV64: ami-18ac6575
+    eu-central-1:
+      HVM64: ami-bc5b48d0
+      HVMG2: ami-ba1a09d6
+      PV64: ami-794a5915
+    eu-west-1:
+      HVM64: ami-bff32ccc
+      HVMG2: ami-83fd23f0
+      PV64: ami-95e33ce6
+    sa-east-1:
+      HVM64: ami-6817af04
+      HVMG2: NOT_SUPPORTED
+      PV64: ami-7d15ad11
+    us-east-1:
+      HVM64: ami-60b6c60a
+      HVMG2: ami-e998ea83
+      PV64: ami-5fb8c835
+    us-west-1:
+      HVM64: ami-d5ea86b5
+      HVMG2: ami-943956f4
+      PV64: ami-56ea8636
+    us-west-2:
+      HVM64: ami-f0091d91
+      HVMG2: ami-315f4850
+      PV64: ami-d93622b8
+
+Parameters:
+  VpcStack:
+    Description: The VPC stack for the compute environment
+    Type: String
+  BatchStack:
+    Description: The batch stack for running the compute jobs
+    Type: String
+  PipelineFilesystem:
+    Description: The filesystem ID imported from the batch compute stack
+    Type: String
+    Default: Fn::ImportValue
+      !Sub '${BatchStack}-PipelineFilesystem'
+  LzSecurityGroup:
+    Description: The id of the landing zone security group
+    Type: String
+    Default: Fn::ImportValue
+      !Sub '${BatchStack}-LzSecurityGroup'
+  PublicSubnet:
+    Description: The subnet id of the landing zone subnet
+    Type: String
+    Default: Fn::ImportValue
+      !Sub '${VpcStack}-PublicSubnet' #public subnet with internet access
+  PublicKeyContent:
+    Description: The key material of the public key for assigning to the ec2 Image
+    Type: String
+  PipelineIdentifier:
+    Description: Identifies the pipeline's resources uniquely
+    Type: String
+  WhitelistIP:
+    Description: The IP this project will be launched and accessed from
+    Type: String
+
+  InstanceType:
+    AllowedValues:
+    - t1.micro
+    - t2.nano
+    - t2.micro
+    - t2.small
+    - t2.medium
+    - t2.large
+    - m1.small
+    - m1.medium
+    - m1.large
+    - m1.xlarge
+    - m2.xlarge
+    - m2.2xlarge
+    - m2.4xlarge
+    - m3.medium
+    - m3.large
+    - m3.xlarge
+    - m3.2xlarge
+    - m4.large
+    - m4.xlarge
+    - m4.2xlarge
+    - m4.4xlarge
+    - m4.10xlarge
+    - c1.medium
+    - c1.xlarge
+    - c3.large
+    - c3.xlarge
+    - c3.2xlarge
+    - c3.4xlarge
+    - c3.8xlarge
+    - c4.large
+    - c4.xlarge
+    - c4.2xlarge
+    - c4.4xlarge
+    - c4.8xlarge
+    - g2.2xlarge
+    - g2.8xlarge
+    - r3.large
+    - r3.xlarge
+    - r3.2xlarge
+    - r3.4xlarge
+    - r3.8xlarge
+    - i2.xlarge
+    - i2.2xlarge
+    - i2.4xlarge
+    - i2.8xlarge
+    - d2.xlarge
+    - d2.2xlarge
+    - d2.4xlarge
+    - d2.8xlarge
+    - hi1.4xlarge
+    - hs1.8xlarge
+    - cr1.8xlarge
+    - cc2.8xlarge
+    - cg1.4xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+    Default: m4.2xlarge
+    Description: WebServer EC2 instance type
+    Type: String

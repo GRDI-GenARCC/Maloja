@@ -1,0 +1,69 @@
+# syntax=docker/dockerfile:1
+FROM {{{ imagebuilder:parentImage }}}
+{{{ imagebuilder:environments }}}
+{{{ imagebuilder:components }}}
+
+WORKDIR /root/Snakemake
+
+SHELL ["/bin/bash", "--login", "-c"]
+RUN apt update && apt install -y awscli unzip && rm -rf /var/lib/apt/lists/*
+
+
+RUN conda install -n base -c conda-forge mamba
+RUN conda create --name bacterial 
+RUN conda clean -afy && conda init bash 
+RUN printf "conda activate bacterial" >> ~/.bashrc
+RUN conda install -c conda-forge bioconda::snakemake=7.24.2
+
+# getting the zip file from the EC2 instance
+# the zip file is uploaded manually
+# RUN wget http://bacteria-snakemake-provision
+
+
+# RUN wget https://github.com/candress/snakemake-bacterial-whole-genome-pipeline/archive/refs/heads/main.zip
+# RUN unzip snakemake-bacterial-whole-genome-pipeline-main.zip
+
+RUN wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.10/sratoolkit.3.0.10-ubuntu64.tar.gz
+RUN tar -xvf sratoolkit.3.0.10-ubuntu64.tar.gz
+# OR
+# not this one because it affects the next command:
+# RUN wget --output-document sratoolkit.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-ubuntu64.tar.gz
+# RUN tar -vxzf sratoolkit.tar.gz
+
+
+RUN sratoolkit.3.0.10-ubuntu64/bin/prefetch -p SRR24437709 SRR24437710 SRR24437713 SRR24437715
+RUN sratoolkit.3.0.10-ubuntu64/bin/fastq-dump --gzip --split-3 SRR24437709/SRR24437709.sra SRR24437710/SRR24437710.sra SRR24437713/SRR24437713.sra SRR24437715/SRR24437715.sra
+
+RUN rm -r SRR24437709 SRR24437710 SRR24437713 SRR24437715 sratoolkit.3.0.10-ubuntu64 sratoolkit.3.0.10-ubuntu64.tar.gz
+
+RUN mv SRR24437709_1.fastq.gz SRR24437709_R1_001.fastq.gz
+RUN mv SRR24437709_2.fastq.gz SRR24437709_R2_001.fastq.gz
+RUN mv SRR24437710_1.fastq.gz SRR24437710_R1_001.fastq.gz
+RUN mv SRR24437710_2.fastq.gz SRR24437710_R2_001.fastq.gz
+RUN mv SRR24437713_1.fastq.gz SRR24437713_R1_001.fastq.gz
+RUN mv SRR24437713_2.fastq.gz SRR24437713_R2_001.fastq.gz
+RUN mv SRR24437715_1.fastq.gz SRR24437715_R1_001.fastq.gz
+RUN mv SRR24437715_2.fastq.gz SRR24437715_R2_001.fastq.gz
+RUN mkdir fastq
+RUN mv SRR24437709_R1_001.fastq.gz SRR24437709_R2_001.fastq.gz SRR24437710_R1_001.fastq.gz SRR24437710_R2_001.fastq.gz SRR24437713_R1_001.fastq.gz SRR24437713_R2_001.fastq.gz SRR24437715_R1_001.fastq.gz SRR24437715_R2_001.fastq.gz fastq
+
+RUN mv fastq snakemake-bacterial-whole-genome-pipeline-main
+
+WORKDIR /root/Snakemake/snakemake-bacterial-whole-genome-pipeline-main
+
+RUN snakemake --use-conda --conda-create-envs-only --cores 12
+
+# this might cause an issue becasue the snakemake folder in mnt/efs/snakemake is mounted to the EC2 instance. It might be that this needs to be performed after running the docker image and loging in
+# RUN cp -r /root/Snakemake/snakemake-bacterial-whole-genome-pipeline-main /mnt/efs/snakemake/
+
+CMD /bin/bash
+
+
+# still need to move these zip files to an apporopriate location AND test the pipeline (SRA directory not used)
+# How to run the pipeline (take out slurm params)
+# snakemake \
+#     --jobs 64 \
+#     --use-conda \
+#     --rerun-incomplete \
+#     --forceall \
+#     --latency-wait 10 \

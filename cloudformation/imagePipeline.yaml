@@ -1,0 +1,143 @@
+Resources:
+  ContainerRecipe:
+    Type: AWS::ImageBuilder::ContainerRecipe
+    Properties:
+      Name: !Join ['-', ['DefaultRecipe', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      Version: 1.0.0
+      ContainerType: DOCKER
+      Components: 
+        - ComponentArn: !Ref SnakemakeComponent
+      ParentImage: continuumio/miniconda3:23.3.1-0
+      TargetRepository: 
+        Service: 'ECR'
+        RepositoryName: !Ref ECRHost
+      DockerfileTemplateData: 
+            Fn::Sub: '${Dockerfile}'
+      WorkingDirectory: '/tmp/build'
+      Tags:
+        PipelineIdentifier: !Ref PipelineIdentifier
+
+  ImagePipeline:
+    Type: AWS::ImageBuilder::ImagePipeline
+    Properties:
+      Name: !Join ['-', ['DefaultSnakemakeImagePipeline', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      ContainerRecipeArn: !Ref ContainerRecipe
+      InfrastructureConfigurationArn:
+            Fn::ImportValue:
+              Fn::Sub: '${ImageStack}-InfrastructureConfig'
+      DistributionConfigurationArn: !Ref DistributionConfig
+      Tags:
+        PipelineIdentifier: !Ref PipelineIdentifier
+
+  SnakemakeComponent:
+    Type: AWS::ImageBuilder::Component
+    Properties:
+      Name: !Join ['-', ['SnakemakeAutomatorComponent', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      Description: Downloads the appropriate snakemake profile from S3
+      Data:
+        !Sub |-
+          name: SnakemakeAutomatorSetup
+          description: This is to install the appropriate snakemake profile from S3 and configure your execution image
+          schemaVersion: 1.0
+          phases:
+            - name: build
+              steps:
+              - name: Update
+                action: ExecuteBash
+                inputs:
+                  commands:
+                    - |
+                      apt update
+                      mkdir /root/Snakemake
+              - name: InstallProfile
+                action: S3Download
+                inputs:
+                  - source: s3://${PipelineBucket}/Snakemake.tar.gz
+                    destination: /root/Snakemake/profile-config.tar.gz
+                    overwrite: false
+              - name: InstallBuildDeps
+                action: S3Download
+                inputs:
+                  - source: s3://${PipelineBucket}/BuildDeps.tar.gz
+                    destination: /root/Snakemake/BuildDeps.tar.gz
+                    overwrite: false
+              - name: ExtractProfile
+                action: ExecuteBash
+                inputs:
+                  commands:
+                    - |
+                      cd /root/Snakemake
+                      tar -xf /root/Snakemake/profile-config.tar.gz
+                      chmod +x .config/snakemake/aws-batch/batch-{submit.py,status.py,jobscript.sh}
+                      mv .config /root
+              - name: ExtractBuildDeps
+                action: ExecuteBash
+                inputs:
+                  commands:
+                    - |
+                      cd /root/Snakemake
+                      tar -xf /root/Snakemake/BuildDeps.tar.gz
+              - name: DeleteTar
+                action: DeleteFile
+                inputs:
+                  - path: /root/Snakemake/profile-config.tar.gz
+                  - path: /root/Snakemake/BuildDeps.tar.gz
+              - name: Install
+                action: ExecuteBash
+                inputs:
+                  commands:
+                    - |
+                      apt install -y awscli
+      Platform: Linux
+      Version: '1.0.0'
+      Tags:
+        PipelineIdentifier: !Ref PipelineIdentifier
+
+  ECRHost:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Join ['-', [ !Ref ECRname, !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+        - Key: PipelineIdentifier
+          Value: !Ref PipelineIdentifier
+
+  DistributionConfig:
+    Type: 'AWS::ImageBuilder::DistributionConfiguration'
+    Properties:
+      Name: !Join ['-', [ 'distribution-configuration', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      Description: 'Set target repository and container tags for container distribution to Ca-central Region.'
+      Distributions:
+        - Region: 'ca-central-1'
+          ContainerDistributionConfiguration:
+            Description: 'test distribution cfn template'
+            TargetRepository:
+              Service: ECR
+              RepositoryName: !Ref ECRHost
+            ContainerTags:
+              - 'latest'
+
+Parameters:
+  Dockerfile:
+    Description: The data supplied to AWS Imagebuilder for building a docker container.
+    Type: String
+  ImageStack:
+    Description: The name of the stack defining the EC2ImageBuilder infrastructure
+    Type: String
+  ECRname:
+    Description: Name of the ECR Repository for use with imageBuilder and Batch.
+    Type: String
+  PipelineIdentifier:
+    Description: uniquely identifies the project resources
+    Type: String
+  PipelineBucket:
+    Description: The name of the bucket that stores the pipeline inputs
+    Type: String
+  Region:
+    Description: region of the intended deployment
+    Type: String
+Outputs:
+  imagePipeline:
+    Description: The arn for the image pipeline
+    Value: !GetAtt ImagePipeline.Arn

@@ -1,0 +1,7 @@
+{
+	"profile_name": "aws-batch",
+	"cluster_config": "cluster",
+	"queue_arn": "${queue_id}",
+	"jobdef": "${jobDefinition_name}",
+	"conda": "${pipeline_path}"
+}

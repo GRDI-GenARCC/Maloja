@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+FROM continuumio/miniconda3:latest as base_snakemake
+WORKDIR /root/Snakemake
+COPY . .
+
+SHELL ["/bin/bash", "-c"]
+RUN apt update && apt install -y awscli && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root
+COPY .config/snakemake ./.config/snakemake
+COPY .aws/config ./.aws/config
+
+WORKDIR /root/Snakemake
+
+CMD /bin/bash
+
+FROM base_snakemake as grenepipe
+COPY --from=base_snakemake /root/Snakemake /root/Snakemake
+WORKDIR /root/Snakemake
+SHELL ["/bin/bash", "-c"]
+
+RUN conda install mamba -n base -c conda-forge
+RUN mamba env create -f envs/grenepipe.yaml -n grenepipe && mamba clean -afy && mamba init bash && printf "mamba activate grenepipe" >> ~/.bashrc
+
+SHELL ["/bin/bash", "--login", "-c"]
+
+RUN ./example/prepare.sh
+#Hesitant to install in dockerfile, when environments need to exist on common filesystem
+#RUN set +euo pipefail && snakemake --use-conda --conda-frontend mamba --cores 12 --directory example/
+
+CMD /bin/bash

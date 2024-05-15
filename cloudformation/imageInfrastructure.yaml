@@ -1,0 +1,40 @@
+Resources:
+  InfrastructureConfig:
+    Type: AWS::ImageBuilder::InfrastructureConfiguration
+    Properties:
+      Name: Snakemake-Automator-Build
+      Description: A configuration of the VMs that will build a docker image for science batch environments
+      InstanceProfileName: !Ref ImageBuilderInstanceRole
+      InstanceTypes:
+        - t3.medium
+        - m4.2xlarge
+      SecurityGroupIds:
+        - Fn::ImportValue:
+            Fn::Sub: '${VpcStack}-NoIngressSecGroup'
+      SubnetId: 
+        Fn::ImportValue:
+          !Sub '${VpcStack}-PrivateSubnet-Zone2'
+      ResourceTags: 
+        PipelineIdentifier: !Ref PipelineIdentifier
+      Tags:
+        PipelineIdentifier: !Ref PipelineIdentifier
+      TerminateInstanceOnFailure: True
+
+Parameters:
+  VpcStack:
+    Description: The VPC stack that which the batch compute will run on
+    Type: String
+  PipelineIdentifier:
+    Description: the identifier for shared resources
+    Type: String
+  ImageBuilderInstanceRole:
+    Description: name of the instance role for imagebuilder to access S3
+    Type: String
+
+Outputs:
+  InfrastructureConfig:
+    Description: The ID referencing the created InfrastructureConfiguration in Ec2ImageBuilder
+    Value: !Ref InfrastructureConfig
+    Export:
+      Name: !Sub "${AWS::StackName}-InfrastructureConfig"
+  

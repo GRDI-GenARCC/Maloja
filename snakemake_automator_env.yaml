@@ -1,0 +1,11 @@
+name: snakemake_automator
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cookiecutter
+  - pyyaml
+  - click
+  - boto3
+  - cfn-flip
+  - pandas

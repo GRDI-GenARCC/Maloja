@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1
+FROM continuumio/miniconda3:latest as base_snakemake
+WORKDIR /root/Snakemake
+COPY . .
+
+SHELL ["/bin/bash", "-c"]
+RUN apt update && apt install -y awscli unzip && rm -rf /var/lib/apt/lists/*
+
+#WORKDIR /root
+#COPY .config/snakemake ./.config/snakemake
+#COPY .aws/config ./.aws/config
+
+WORKDIR /root/Snakemake
+
+CMD /bin/bash
+
+FROM base_snakemake as metaworks
+COPY --from=base_snakemake /root/Snakemake /root/Snakemake
+WORKDIR /root/Snakemake
+SHELL ["/bin/bash",  "--login", "-c"]
+
+RUN wget https://github.com/terrimporter/MetaWorks/releases/download/v1.12.0/MetaWorks1.12.0.zip
+RUN unzip MetaWorks1.12.0.zip && mv MetaWorks1.12.0/* . && rm -rf MetaWorks1.12.0
+
+
+RUN conda env create -f ./environment.yml && conda clean -afy && conda init bash && printf "conda activate MetaWorks_v1.12.0" >> ~/.bashrc
+
+# Download CO1 training set
+RUN wget https://github.com/terrimporter/CO1Classifier/releases/download/RDP-COI-v5.0.0/RDP_COIv5.0.0.zip
+
+# decompress it
+RUN unzip RDP_COIv5.0.0.zip
+
+# Configure snakemake to point to classifier location
+RUN sed -i "s/\/path\/to/\/Metaworks/" config_testing_COI_data.yaml 
+
+# supplement conda env with ORFfinder (and libuv and libdw)
+RUN wget ftp://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/ORFfinder/linux-i64/ORFfinder.gz 
+RUN gunzip ORFfinder.gz
+RUN mkdir ~/bin
+RUN chmod a+x ./ORFfinder
+RUN mv ORFfinder ~/bin
+
+
+RUN printf '\nexport PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+
+CMD conda run --no-capture-output -n MetaWorks_v1.12.0 snakemake --jobs 1 --configfile config_testing_COI_data.yaml --snakefile snakefile_ESV

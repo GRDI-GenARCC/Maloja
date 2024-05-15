@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Template for launching AWS Batch as Managed Compute Resource'
+Resources:
+  JobDefinition:
+    Type: "AWS::Batch::JobDefinition"
+    Properties:
+      JobDefinitionName: !Ref JobName
+      ContainerProperties:
+        Command:
+          - 'echo'
+          - 'Hello World'
+        Memory: 2000
+        Vcpus: 1
+        Image: !Ref DockerImage
+        ExecutionRoleArn: !Ref EcsExecutionRole
+        MountPoints:
+          - SourceVolume: "efsSnakemake"
+            ReadOnly: false
+            ContainerPath: "/mnt/efs/snakemake"
+        Volumes:
+          - EfsVolumeConfiguration:
+              FileSystemId: 
+                Fn::ImportValue:
+                  !Sub '${BatchStack}-PipelineFilesystem'
+              RootDirectory: "/"
+              TransitEncryption: "ENABLED"
+            Name: "efsSnakemake"
+      Tags:
+        PipelineIdentifier: !Ref PipelineIdentifier
+      Type: "container"
+
+Parameters:
+  BatchStack:
+    Description: The batch stack that which the jobDef is intended for
+    Type: String
+
+  DockerImage:
+    Description: The docker image for running the pipeline in
+    Type: String
+    Default: alpine:latest
+
+  JobName:
+    Description: The jobname configured in amzn.yaml
+    Type: String
+    Default: Default-Job
+
+  PipelineIdentifier:
+    Description: The uniquely identifying name for tagging the pipeline
+    Type: String
+
+  EcsExecutionRole:
+    Description: The permissions to execute the task on ECS
+    Type: String

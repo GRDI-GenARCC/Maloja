@@ -1,0 +1,4 @@
+SELECT SUM(lineItem_UnblendedCost), lineItem_ResourceId as resource FROM <CSV FILENAME>
+WHERE (resource LIKE '%<RESOURCE ID>%' 
+) AND 
+identity_TimeInterval LIKE '<yyyy-mm-dd>T<hh:mm:ss>Z%'

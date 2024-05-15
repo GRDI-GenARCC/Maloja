@@ -1,0 +1,170 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "cloudwatch:*",
+                "cloudformation:CreateStack",
+                "cloudformation:DescribeStackEvents",
+                "ec2:CancelSpotInstanceRequests",
+                "ec2:CancelSpotFleetRequests",
+                "ec2:CreateTags",
+                "ec2:DeleteTags",
+                "ec2:Describe*",
+                "ec2:ModifyImageAttribute",
+                "ec2:ModifyInstanceAttribute",
+                "ec2:ModifySpotFleetRequest",
+                "ec2:RequestSpotInstances",
+                "ec2:RequestSpotFleet",
+                "iam:GetInstanceProfile",
+                "iam:GetRole",
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:ListRoles",
+                "kms:List*",
+                "logs:DescribeLogStreams",
+                "logs:GetLogEvents",
+                "s3:CreateBucket"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:Abort*",
+                "s3:DeleteObject",
+                "s3:Get*",
+                "s3:List*",
+                "s3:PutAccelerateConfiguration",
+                "s3:PutBucketCors",
+                "s3:PutBucketLogging",
+                "s3:PutBucketNotification",
+                "s3:PutBucketTagging",
+                "s3:PutObject",
+                "s3:Replicate*",
+                "s3:RestoreObject"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:RunInstances",
+                "ec2:TerminateInstances"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": [
+                "arn:aws:iam::*:role/DataPipelineDefaultRole",
+                "arn:aws:iam::*:role/DataPipelineDefaultResourceRole",
+                "arn:aws:iam::*:role/EMR_EC2_DefaultRole",
+                "arn:aws:iam::*:role/EMR_DefaultRole"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticfilesystem:DescribeBackupPolicy",
+                "elasticfilesystem:DescribeReplicationConfigurations",
+                "elasticfilesystem:ListTagsForResource",
+                "elasticfilesystem:ClientWrite",
+                "elasticfilesystem:DescribeLifecycleConfiguration",
+                "elasticfilesystem:ClientMount",
+                "elasticfilesystem:DescribeFileSystemPolicy",
+                "elasticfilesystem:DescribeFileSystems",
+                "elasticfilesystem:DescribeMountTargets",
+                "elasticfilesystem:DescribeAccessPoints",
+                "elasticfilesystem:DescribeTags",
+                "elasticfilesystem:ClientRootAccess",
+                "elasticfilesystem:DescribeMountTargetSecurityGroups"
+            ],
+            "Resource": [
+                "arn:aws:elasticfilesystem:*:*:file-system/*",
+                "arn:aws:elasticfilesystem:*:*:access-point/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticfilesystem:PutAccountPreferences",
+                "elasticfilesystem:CreateFileSystem",
+                "elasticfilesystem:DescribeAccountPreferences"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "batch:DescribeJobQueues",
+                "batch:CancelJob",
+                "batch:SubmitJob",
+                "batch:ListJobs",
+                "batch:TagResource",
+                "batch:DescribeComputeEnvironments",
+                "batch:UntagResource",
+                "batch:DeregisterJobDefinition",
+                "batch:TerminateJob",
+                "batch:DescribeJobs",
+                "batch:ListTagsForResource",
+                "batch:RegisterJobDefinition",
+                "batch:DescribeSchedulingPolicies",
+                "batch:DescribeJobDefinitions",
+                "batch:ListSchedulingPolicies"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:PutImageTagMutability",
+                "ecr:StartImageScan",
+                "ecr:DescribeImageReplicationStatus",
+                "ecr:ListTagsForResource",
+                "ecr:UploadLayerPart",
+                "ecr:BatchDeleteImage",
+                "ecr:CreatePullThroughCacheRule",
+                "ecr:ListImages",
+                "ecr:BatchGetRepositoryScanningConfiguration",
+                "ecr:GetRegistryScanningConfiguration",
+                "ecr:CompleteLayerUpload",
+                "ecr:TagResource",
+                "ecr:DescribeRepositories",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:ReplicateImage",
+                "ecr:GetLifecyclePolicy",
+                "ecr:GetRegistryPolicy",
+                "ecr:PutLifecyclePolicy",
+                "ecr:DescribeImageScanFindings",
+                "ecr:GetLifecyclePolicyPreview",
+                "ecr:DescribeRegistry",
+                "ecr:PutImageScanningConfiguration",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:DescribePullThroughCacheRules",
+                "ecr:GetAuthorizationToken",
+                "ecr:PutRegistryScanningConfiguration",
+                "ecr:DeletePullThroughCacheRule",
+                "ecr:DeleteLifecyclePolicy",
+                "ecr:PutImage",
+                "ecr:BatchImportUpstreamImage",
+                "ecr:UntagResource",
+                "ecr:BatchGetImage",
+                "ecr:DescribeImages",
+                "ecr:StartLifecyclePolicyPreview",
+                "ecr:InitiateLayerUpload",
+                "ecr:GetRepositoryPolicy",
+                "ecr:PutReplicationConfiguration"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

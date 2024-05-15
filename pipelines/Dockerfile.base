@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+FROM continuumio/miniconda3:latest as base_snakemake
+WORKDIR /root/Snakemake
+COPY . .
+
+SHELL ["/bin/bash", "-c"]
+RUN apt update && apt install -y awscli && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root
+COPY .config/snakemake ./.config/snakemake
+COPY .aws/config ./.aws/config
+
+WORKDIR /root/Snakemake
+
+CMD /bin/bash
+
+## FROM HERE IS WHERE YOU INSTALL THE PIPELINE
+FROM base_snakemake as pipeline
+

@@ -12,7 +12,7 @@ The main utility is the maloja python script, which provides a command line inte
 
 **Note :** Currently no support for GPU acceleration
 
-![Architecture-Diagram](AWS-Cloud-Architecture.png)
+![AWS-Cloud-Architecture](https://github.com/hodgsonw/Maloja/assets/44032294/cd96b62c-708c-4f04-a09c-652b677f12f2)
 
 ## Install Instructions
 All dependencies are resolved through conda on conda-forge.

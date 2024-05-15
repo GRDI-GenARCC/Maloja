@@ -1,86 +1,10 @@
-## Beginning Guide (In Revision)
+The tutorial goes over a detailed list of steps for using Maloja to deploy a snakemake pipeline.
+The following figure summarizes the four high level steps of deploying a pipeline.
 
-1. Configure the amzn.yaml to your account, specifying an amazon region, accountID, role arns, docker image, pipeline details.
-    ``` cp amzn.yaml.template amzn.yaml ```
-2. Create the necessary roles from the /roles directory in your environment and record the appropriate ARN in the amzn.yaml configuration
-3. Ensure you can authenticate from the terminal (awscli), when accessing the API. This step may vary based on authentication method, but can be done with environment variables, config files, or additional software tools.
-4. Activate the conda environment and run the following to confirm maloja runs.
-``` python setup_environment.py --help ```
-5. Deploy the roles
-``` python setup_environment.py roles ```
-6. Update your amzn.yaml config file with the outputted values in the roles setion.
-7. Deploy the infrastructure
-``` python setup_environment.py infrastructure ```
-8. Deploy that pipeline with your image and job definition
-``` 
-python setup_environment.py pipeline -t <image-size> 
-python setup_environment.py finalize
-```
-9.  Login to AWS console, go to EC2 Image Builder, click image pipelines.  Select the image for the snakemake pipeline, click actions->Run pipleine.
-10. Go to AWS EC2.  You should see two images running.  Wait for the build image "Build Instance for DefaultRecipe" to complete and disapear.  This takes about 20 mins.
-11. Go to AWS Elastic Container Registry and click on the registry that was created.  Under images click on Copy URI
-12. Access the landing node with the provided ssh command from the output of the previous step or connecting via SSM (see note below) to the instance that is running.
-13. Setup your AWS credentials
-``` AWS configure sso ```
-14. Login to the container registry
-```
-aws ecr get-login-password --region ca-central-1 | docker login --username AWS --password-stdin <ECR-image-url>
-```
-15. Pull the docker image
-``` docker pull <ECR-image-url>```
-16. Run the docker container
-```
-docker run -it --name metaworks --mount type=bind,source=/home/ec2-user/mountpoint,target=/mnt/efs/snakemake <ECR-image-url> /bin/bash 
-```
-17. Setup your AWS credentials on the docker image
-Go to federated login page and click Command line or programmatic access.  Copy option2
-``` 
-aws configure set default.region ca-central-1
-sudo nano ~/.aws/credentials
-```
- Past in the value from the clipboard and replace the profile in [] with [default]
-18.  Copy files from ~/Snakemake to /mnt/efs/snakemake
-``` cp -R . /mnt/efs/snakemake ```
-19.  change into the mount folder
-``` cd /mnt.efs.snakemake ```
-20. Create and activate the conda environment for the pipeline.  Replace MetaWorks_v1.12.0 with what ever pipeline you are running.
-```
-conda create -p /mnt/efs/snakemake/MetaWorks_v1.12.0 --clone MetaWorks_v1.12.0
-conda activate /mnt/efs/snakemake/MetaWorks_v1.12.0
-``` 
-21.  Run snakemake with your snakemake file (ex snakefile_ESV) and config (ex config_testing_COI_data.yaml)
-```
-snakemake --jobs 24 --snakefile <snakefile> --configfile <config-file> --profile aws-batch --forceall 
-```
-
-## Connecting via SSM
-If connecting via SSM run the following command to ensure you are logged in with ec2-user
-``` sudo su - ec2-user ```
-
-## Connecting into a running docker image
-``` docker exec -it <image-name> bash ```
-
-## Troubleshooting
-aws configure sso is not working.  Try installing the aws cli v2
-```
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
-cd /usr/local/bin
-sudo ln -sfn /usr/local/aws-cli/v2/2.15.3/bin/aws
-```
-
-If you hit errors running snakemake complaining against /r in the file likely files were copied from a windows machine and need to be scrubed before they can be run.  try the following:
-```
-sudo apt-get update
-sudo apt-get install dos2unix
-find ~/. -type f -print0 | xargs -0 dos2unix
-```
-
-![Usage-Diagram](Use-Case-Diagram.png)
+![Use-Case-Diagram](https://github.com/hodgsonw/Maloja/assets/44032294/41811363-1fec-4860-b00d-aee154d663f3)
 
 ## Steps
-1. Make sure local working direcory is `cloud-poc-snakemake-manager`
+1. Make sure local working direcory is `Maloja`
 2. Activate the conda environment 
     ```shell
     conda activate snakemake_automator
